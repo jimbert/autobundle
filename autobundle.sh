@@ -3,7 +3,7 @@
 shell_session_update() { :; }
 
 function apps_to_update {
-  find . -maxdepth 2 -print | grep Gemfile.lock | sed -nr 's/\.\/(.*)\/.*/\1/p'
+  find . -maxdepth 2 -print | grep Gemfile.lock | sed -nE 's/\.\/(.*)\/.*/\1/p'
 }
 
 function todays_date {
