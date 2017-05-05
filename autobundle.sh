@@ -25,6 +25,8 @@ function setup_ruby_environment {
   bundle install
 }
 
+hub --help >/dev/null 2>&1 || { echo >&2 "I require hub but it is not on the path.  Aborting."; exit 1; }
+
 for app in `apps_to_update`; do
   echo "Checking $app"
   cd $app
