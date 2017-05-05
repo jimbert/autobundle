@@ -3,7 +3,7 @@
 shell_session_update() { :; }
 
 function apps_to_update {
-  find . -maxdepth 2 -print | grep Gemfile.lock | sed -nr 's/\.\/(.*)\/.*/\1/p'
+  find . -maxdepth 2 -print | grep Gemfile.lock | sed -nE 's/\.\/(.*)\/.*/\1/p'
 }
 
 function todays_date {
@@ -45,7 +45,7 @@ for app in `apps_to_update`; do
       echo "Bundle update - `todays_date`" > pr.txt
       echo "" >> pr.txt
       echo "Updated the following gems:" >> pr.txt
-      cat bundle_update.log | grep -P '\(was' | sed -nr 's/\w+\W*(.*)/ - \1/p' >> pr.txt
+      cat bundle_update.log | grep -P '\(was' | sed -nE 's/\w+\W*(.*)/ - \1/p' >> pr.txt
       hub pull-request -F pr.txt
       rm pr.txt bundle_update.log
     else
