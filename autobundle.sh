@@ -25,6 +25,8 @@ function setup_ruby_environment {
   bundle install
 }
 
+hub --help >/dev/null 2>&1 || { echo >&2 "I require hub but it is not on the path.  Aborting."; exit 1; }
+
 for app in `apps_to_update`; do
   echo "Checking $app"
   cd $app
@@ -45,7 +47,7 @@ for app in `apps_to_update`; do
       echo "Bundle update - `todays_date`" > pr.txt
       echo "" >> pr.txt
       echo "Updated the following gems:" >> pr.txt
-      cat bundle_update.log | grep -P '\(was' | sed -nr 's/\w+\W*(.*)/ - \1/p' >> pr.txt
+      cat bundle_update.log | grep -E '\(was' | sed -nE 's/Using(.*)/ - \1/p' >> pr.txt
       hub pull-request -F pr.txt
       rm pr.txt bundle_update.log
     else
