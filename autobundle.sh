@@ -1,7 +1,5 @@
 #!/usr/bin/env bash
 
-shell_session_update() { :; }
-
 function apps_to_update {
   find . -maxdepth 2 -print | grep Gemfile.lock | sed -nE 's/\.\/(.*)\/.*/\1/p'
 }
@@ -15,41 +13,55 @@ function branch_name {
 }
 
 function setup_ruby_environment {
-  ruby_version=$1
-  gemset=$2
-
-  echo "Setting up ruby $ruby_version@$gemset"
-  rvm install $ruby_version
-  rvm --create use "$ruby_version@$gemset"
+  rbenv install -s
   gem install bundler
   bundle install
 }
 
-hub --help >/dev/null 2>&1 || { echo >&2 "I require hub but it is not on the path.  Aborting."; exit 1; }
+function create_pull_request {
+  git add Gemfile.lock
+  git commit -m "Bundle update `todays_date`"
+  git push -u origin `branch_name`
+
+  echo "Bundle update - `todays_date`" > pr.txt
+  echo "" >> pr.txt
+  echo "Updated the following gems:" >> pr.txt
+  cat bundle_update.log | grep -E '\(was' | sed -nE 's/Using(.*)/ - \1/p' >> pr.txt
+  hub pull-request -F pr.txt
+  rm pr.txt bundle_update.log
+}
+
+function prepare_git_repo {
+  git fetch
+  git checkout master
+  git remote prune origin
+  git reset --hard origin/master
+}
+
+function create_bundle_update_branch {
+  git checkout -B `branch_name`
+}
+
+function verify_script_dependencies {
+  hub --help >/dev/null 2>&1 || \
+    { echo >&2 "I require hub but it is not on the path.  Aborting."; exit 1; }
+  rbenv --version >/dev/null 2>&1 || \
+    { echo >&2 "rbenv is required with the install plugin. Aborting."; exit 1;}
+}
+
+verify_script_dependencies
 
 for app in `apps_to_update`; do
   echo "Checking $app"
   cd $app
-  git fetch
-  git checkout master
-  git remote prune origin
+  prepare_git_repo
   if ! git branch -r | grep -q `branch_name`; then
-    echo "Starting bundle update for $app"
-    git reset --hard origin/master
-    git checkout -B `branch_name`
-    setup_ruby_environment `cat .ruby-version` `cat .ruby-gemset`
-    rvm . do bundle update > bundle_update.log
+    echo "No existing branch found: starting bundle update for $app"
+    setup_ruby_environment
+    create_bundle_update_branch
+    bundle update > bundle_update.log
     if git diff | grep Gemfile; then
-      git add Gemfile.lock
-      git commit -m "Bundle update `todays_date`"
-      git push -u origin `branch_name`
-
-      echo "Bundle update - `todays_date`" > pr.txt
-      echo "" >> pr.txt
-      echo "Updated the following gems:" >> pr.txt
-      cat bundle_update.log | grep -E '\(was' | sed -nE 's/Using(.*)/ - \1/p' >> pr.txt
-      hub pull-request -F pr.txt
-      rm pr.txt bundle_update.log
+      create_pull_request
     else
       echo "No updates today for $app"
     fi
