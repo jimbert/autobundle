@@ -26,7 +26,8 @@ function create_pull_request {
   echo "Bundle update - `todays_date`" > pr.txt
   echo "" >> pr.txt
   echo "Updated the following gems:" >> pr.txt
-  cat bundle_update.log | grep -E '\(was' | sed -nE 's/Using(.*)/ - \1/p' >> pr.txt
+  cat bundle_update.log | grep -E '\(was' | sed -nE 's/^(Using|Installing)(.*)/ - \2/p' >> pr.txt
+  cat pr.txt
   hub pull-request -F pr.txt
   rm pr.txt bundle_update.log
 }
@@ -57,8 +58,8 @@ for app in `apps_to_update`; do
   prepare_git_repo
   if ! git branch -r | grep -q `branch_name`; then
     echo "No existing branch found: starting bundle update for $app"
-    setup_ruby_environment
-    create_bundle_update_branch
+    setup_ruby_environment >/dev/null 2>&1
+    create_bundle_update_branch >/dev/null 2>&1
     bundle update > bundle_update.log
     if git diff | grep Gemfile; then
       create_pull_request
