@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+#!/usr/bin/env bash --login
 
 function apps_to_update {
   find . -maxdepth 2 -print | grep Gemfile.lock | sed -nE 's/\.\/(.*)\/.*/\1/p'
@@ -67,7 +67,7 @@ for app in `apps_to_update`; do
       echo "No updates today for $app"
     fi
   else
-    echo "Bundle update already done for the day for $app"
+    echo "Bundle update already done for the day for $app (origin branch `branch_name` exists)"
   fi
   git checkout master
   cd ..
