@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 function apps_to_update {
-  find . -maxdepth 2 -print | grep Gemfile.lock | sed -nE 's/\.\/(.*)\/.*/\1/p'
+  cat apps.txt
 }
 
 function todays_date {
@@ -51,9 +51,11 @@ function verify_script_dependencies {
 }
 
 verify_script_dependencies
-
+current_dir=`pwd`
 for app in `apps_to_update`; do
+  cd $current_dir
   echo "Checking $app"
+  hub clone stitchfix/$app $app
   cd $app
   prepare_git_repo
   if ! git branch -r | grep -q `branch_name`; then
