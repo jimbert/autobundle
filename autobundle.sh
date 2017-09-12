@@ -19,6 +19,7 @@ function setup_ruby_environment {
 }
 
 function create_pull_request {
+  create_bundle_update_branch >/dev/null 2>&1
   git add Gemfile.lock
   git commit -m "Bundle update `todays_date`"
   git push -u origin `branch_name`
@@ -33,6 +34,9 @@ function create_pull_request {
 }
 
 function prepare_git_repo {
+  echo "Checking $app"
+  hub clone stitchfix/$app $app
+  cd $app
   git fetch
   git checkout master
   git remote prune origin
@@ -51,17 +55,14 @@ function verify_script_dependencies {
 }
 
 verify_script_dependencies
-current_dir=`pwd`
+
+script_dir=`pwd`
 for app in `apps_to_update`; do
-  cd $current_dir
-  echo "Checking $app"
-  hub clone stitchfix/$app $app
-  cd $app
+  cd $script_dir
   prepare_git_repo
   if ! git branch -r | grep -q `branch_name`; then
     echo "No existing branch found: starting bundle update for $app"
     setup_ruby_environment >/dev/null 2>&1
-    create_bundle_update_branch >/dev/null 2>&1
     bundle update > bundle_update.log
     if git diff | grep Gemfile; then
       create_pull_request
@@ -71,6 +72,4 @@ for app in `apps_to_update`; do
   else
     echo "Bundle update already done for the day for $app"
   fi
-  git checkout master
-  cd ..
 done
